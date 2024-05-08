@@ -42,6 +42,4 @@ action:
                     payload: '{"state": "OFF"}'
           - delay: "00:00:02"
 
-continue_on_timeout: true
-
 mode: restart
