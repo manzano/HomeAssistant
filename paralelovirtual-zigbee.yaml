@@ -30,6 +30,7 @@ action:
                   data:
                     topic: "zigbee2mqtt/{{ device_ids[repeat.index - 1] }}/set"
                     payload: '{"state": "ON"}'
+          - delay: "00:00:02"
         continue_on_timeout: true
       - conditions: "{{ trigger.to_state.state == 'off' }}"
         sequence:
@@ -40,6 +41,7 @@ action:
                   data:
                     topic: "zigbee2mqtt/{{ device_ids[repeat.index - 1] }}/set"
                     payload: '{"state": "OFF"}'
+          - delay: "00:00:02"
         continue_on_timeout: true
 
 mode: restart
