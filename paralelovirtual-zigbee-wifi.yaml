@@ -1,0 +1,68 @@
+blueprint:
+  name: Paralelo Virtual Zigbee e Não Zigbee
+  description: Acende ou apaga vários dispositivos Zigbee e não Zigbee simultaneamente.
+  domain: automation
+  input:
+    dispositivos_zigbee:
+      name: Dispositivos Zigbee
+      description: Selecione os dispositivos Zigbee a serem controlados.
+      selector:
+        entity:
+          domain: 
+            - switch
+            - light
+          integration: "zigbee"
+          multiple: true
+    dispositivos_nao_zigbee:
+      name: Dispositivos Não Zigbee
+      description: Selecione os dispositivos Não Zigbee a serem controlados.
+      selector:
+        entity:
+          domain: 
+            - switch
+            - light
+          integration: "mqtt"
+          multiple: true
+
+trigger:
+  platform: state
+  entity_id:
+    - !input dispositivos_zigbee
+    - !input dispositivos_nao_zigbee
+
+action:
+  - variables:
+      dispositivos: "{{ expand('entity_ids', 'input.dispositivos_zigbee') + expand('entity_ids', 'input.dispositivos_nao_zigbee') }}"
+  - choose:
+      - conditions: "{{ trigger.to_state.state == 'on' }}"
+        sequence:
+          - repeat:
+              count: "{{ dispositivos|length }}"
+              sequence:
+                - service: mqtt.publish
+                  data:
+                    topic: >
+                      {% if is_state(dispositivos[repeat.index - 1], 'on') %}
+                        "zigbee2mqtt/{{ dispositivos[repeat.index - 1] }}/set"
+                      {% else %}
+                        "some_other_mqtt_topic/{{ dispositivos[repeat.index - 1] }}/set"
+                      {% endif %}
+                    payload: '{"state": "ON"}'
+        continue_on_timeout: true
+      - conditions: "{{ trigger.to_state.state == 'off' }}"
+        sequence:
+          - repeat:
+              count: "{{ dispositivos|length }}"
+              sequence:
+                - service: mqtt.publish
+                  data:
+                    topic: >
+                      {% if is_state(dispositivos[repeat.index - 1], 'on') %}
+                        "zigbee2mqtt/{{ dispositivos[repeat.index - 1] }}/set"
+                      {% else %}
+                        "some_other_mqtt_topic/{{ dispositivos[repeat.index - 1] }}/set"
+                      {% endif %}
+                    payload: '{"state": "OFF"}'
+        continue_on_timeout: true
+
+mode: restart
