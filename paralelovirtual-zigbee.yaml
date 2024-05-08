@@ -1,0 +1,45 @@
+blueprint:
+  name: Paralelo Virtual Zigbee MQTT
+  description: Acende ou apaga vários dispositivos Zigbee integrados com MQTT simultaneamente.
+  domain: automation
+  input:
+    dispositivos:
+      name: Dispositivos
+      description: Selecione os dispositivos Zigbee a serem controlados.
+      selector:
+        entity:
+          domain: 
+            - switch
+            - light
+          multiple: true
+
+trigger:
+  platform: state
+  entity_id: !input dispositivos
+
+action:
+  - variables:
+      device_ids: "{{ expand('entity_ids', 'input.dispositivos') }}"
+  - choose:
+      - conditions: "{{ trigger.to_state.state == 'on' }}"
+        sequence:
+          - repeat:
+              count: "{{ device_ids|length }}"
+              sequence:
+                - service: mqtt.publish
+                  data:
+                    topic: "zigbee2mqtt/{{ device_ids[repeat.index - 1] }}/set"
+                    payload: '{"state": "ON"}'
+        continue_on_timeout: true
+      - conditions: "{{ trigger.to_state.state == 'off' }}"
+        sequence:
+          - repeat:
+              count: "{{ device_ids|length }}"
+              sequence:
+                - service: mqtt.publish
+                  data:
+                    topic: "zigbee2mqtt/{{ device_ids[repeat.index - 1] }}/set"
+                    payload: '{"state": "OFF"}'
+        continue_on_timeout: true
+
+mode: restart
